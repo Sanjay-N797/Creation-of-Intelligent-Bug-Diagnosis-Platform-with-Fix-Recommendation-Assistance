@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Bug Mission Control — AI Bug Analyzer & Defect Intelligence Platform powered by Python FastAPI & SQL Database.">
+  <title>Bug Mission Control // AI Diagnostics v2.0.0</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%230e1017'/><path d='M30 30 L70 30 L70 70 L30 70 Z' fill='none' stroke='%2300f0ff' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%23ff4a4a'/></svg>">
+</head>
+<body>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Slide-Over AI Mentor Chat Drawer -->
+  <div class="chat-drawer-overlay" id="chatDrawerOverlay">
+    <div class="chat-drawer" id="chatDrawer">
+      <div class="chat-drawer-header">
+        <div class="chat-drawer-title">
+          <span>AI CODING MENTOR // DISPATCH</span>
+          <span class="badge badge-open" id="chatBugBadge">BUG-000</span>
+        </div>
+        <button class="chat-drawer-close" id="closeChatBtn">✕</button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <!-- Messages rendered dynamically -->
+      </div>
+
+      <form class="chat-input-form" id="chatForm">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Ask AI Mentor a diagnostic or code fix question..." required autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm" id="sendChatBtn">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bug Detail Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+      <div id="modalBody">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- App Layout Shell -->
+  <div class="app-layout">
+
+    <!-- ===== Compact Left Sidebar Navigation ===== -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-icon">BMC</div>
+        <div class="sidebar-brand-text">MISSION<span>CONTROL</span></div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-tab active" data-section="dashboard">
+          <span class="nav-icon">01</span>
+          <span>// DASHBOARD</span>
+        </button>
+        <button class="nav-tab" data-section="analyze">
+          <span class="nav-icon">02</span>
+          <span>// ANALYZER</span>
+        </button>
+        <button class="nav-tab" data-section="code-doctor">
+          <span class="nav-icon">03</span>
+          <span>// CODE DOCTOR</span>
+        </button>
+        <button class="nav-tab" data-section="knowledge-base">
+          <span class="nav-icon">04</span>
+          <span>// KNOWLEDGE BASE</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sys-status">
+          <span class="sys-dot"></span>
+          <span>SQLITE // ONLINE</span>
+        </div>
+        <div style="color: var(--text-muted);">API v2.0.0 | READY</div>
+      </div>
+    </aside>
+
+    <!-- ===== Main Workspace Wrapper ===== -->
+    <div class="app-main-wrapper" id="appMainWrapper">
+
+      <!-- ===== Top Bar ===== -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">≡</button>
+          <div class="top-bar-title">
+            <span>BUG MISSION CONTROL</span>
+            <span class="title-tag">AI DIAGNOSTICS v2.0.0</span>
+          </div>
+        </div>
+
+        <div class="top-bar-center">
+          <div class="top-search-wrapper">
+            <input type="text" id="topQuickSearch" class="top-search-input" placeholder="Quick search bugs or error logs... [Press / to focus]">
+            <span class="top-search-shortcut">/</span>
+          </div>
+        </div>
+
+        <div class="top-bar-right">
+          <label class="mentor-toggle-wrapper" title="Enable beginner explanations & analogies">
+            <input type="checkbox" id="mentorModeToggle">
+            <span>MENTOR MODE</span>
+          </label>
+
+          <div class="telemetry-badge">
+            <span>LATENCY:</span>
+            <span class="val" id="latencyDisplay">12ms</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ===== Content Container ===== -->
+      <main class="content-container">
+
+        <!-- ============================================================
+             SECTION 1: MAIN DASHBOARD
+             ============================================================ -->
+        <section class="section active" id="section-dashboard">
+          <div class="section-header-row">
+            <div>
+              <h2 class="section-title">DEFECT MISSION CONTROL OVERVIEW</h2>
+              <p class="section-subtitle">Real-time telemetry and AI diagnostic analytics from SQL defect store</p>
+            </div>
+            <div>
+              <button class="btn btn-primary btn-sm" onclick="app._switchSection('analyze')">
+                + ANALYZE NEW BUG
+              </button>
+            </div>
+          </div>
+
+          <!-- Module 1: Bug Severity Overview Stat Counters -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon-label">TOTAL TRACKED</div>
+              <div class="stat-value" id="statTotal">0</div>
+              <div class="stat-label">Indexed defects</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-label">RESOLVED BUGS</div>
+              <div class="stat-value" id="statResolved" style="color: var(--severity-resolved);">0</div>
+              <div class="stat-label">Patched & closed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-label">OPEN ISSUES</div>
+              <div class="stat-value" id="statOpen" style="color: var(--severity-critical);">0</div>
+              <div class="stat-label">Active queue</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-label">AVG RESOLUTION</div>
+              <div class="stat-value" id="statAvgTime">0d</div>
+              <div class="stat-label">Resolution cadence</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-label">SUCCESS RATE</div>
+              <div class="stat-value" id="statRate" style="color: var(--accent-cyan);">0%</div>
+              <div class="stat-label">Fix efficacy rate</div>
+            </div>
+          </div>
+
+          <!-- Module 2: Live Scan / Progress Panel -->
+          <div class="live-scan-panel">
+            <div class="live-scan-header">
+              <div class="live-scan-status">
+                <span class="sys-dot"></span>
+                <span>ENGINE: AI AGENT PIPELINE MONITORING</span>
+              </div>
+              <div style="color: var(--text-muted); font-family: var(--font-mono); font-size: 11px;">
+                STATUS: IDLE / READY FOR DISPATCH
+              </div>
+            </div>
+            <div class="live-log-feed" id="dashboardLiveLogFeed">
+              <div class="log-line"><span class="time">[21:40:02]</span> <span class="tag">[SYS_INIT]</span> FastAPI Backend initialized cleanly on http://localhost:8000</div>
+              <div class="log-line"><span class="time">[21:40:05]</span> <span class="tag">[AGENTS]</span> 5-Agent pipeline online (Triage, LogAnalysis, RootCause, Duplicate, Remediation)</div>
+              <div class="log-line"><span class="time">[21:40:10]</span> <span class="tag">[DATABASE]</span> SQLite connected — 15 historical defect vectors indexed</div>
+            </div>
+          </div>
+
+          <!-- Main Asymmetrical Grid (7:5) -->
+          <div class="dashboard-grid">
+            
+            <!-- Left Side Column (7 cols) -->
+            <div class="dashboard-left-col">
+              
+              <!-- Module 3: Recent Detected Bugs Stream -->
+              <div class="console-card">
+                <div class="console-card-header">
+                  <div class="console-card-title">
+                    <span class="dot"></span>
+                    <span>RECENT DETECTED DEFECTS</span>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" onclick="app._switchSection('knowledge-base')">VIEW ALL</button>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                  <table class="console-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>DEFECT TITLE</th>
+                        <th>SEVERITY</th>
+                        <th>CATEGORY</th>
+                        <th>ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboardRecentBugsBody">
+                      <!-- Populated dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Module 4: Bug Trend & Defect Intelligence Hub -->
+              <div class="console-card" id="defectIntelligenceContainer">
+                <div class="console-card-header">
+                  <div class="console-card-title">
+                    <span class="dot" style="background: var(--severity-high);"></span>
+                    <span>COMPONENT RISK HEATMAP & BUG TRENDS</span>
+                  </div>
+                </div>
+
+                <!-- SVG Trend Chart -->
+                <div class="trend-visualizer-container">
+                  <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>DEFECT SUBMISSION CADENCE (LAST 7 DAYS)</span>
+                    <span style="color: var(--accent-cyan);">● INGESTION RATE</span>
+                  </div>
+                  <svg class="trend-svg" viewBox="0 0 500 100" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M 0,80 Q 75,30 150,60 T 300,20 T 450,50 L 500,40 L 500,100 L 0,100 Z" fill="url(#trendGradient)"/>
+                    <path d="M 0,80 Q 75,30 150,60 T 300,20 T 450,50 L 500,40" fill="none" stroke="#00f0ff" stroke-width="2"/>
+                    <circle cx="150" cy="60" r="3" fill="#00f0ff"/>
+                    <circle cx="300" cy="20" r="3" fill="#ff4a4a"/>
+                    <circle cx="450" cy="50" r="3" fill="#ffb703"/>
+                  </svg>
+                </div>
+
+                <div style="margin-top: 16px;">
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">
+                    Component Risk Scores
+                  </div>
+                  <div id="componentRiskGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+                    Recurring Anti-Pattern Alerts
+                  </div>
+                  <div id="antiPatternList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+                    Team Productivity Guidance
+                  </div>
+                  <div id="teamRecommendationsList" style="display: flex; flex-direction: column; gap: 6px;">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Side Column (5 cols) -->
+            <div class="dashboard-right-col">
+              
+              <!-- Module 5: AI Diagnosis / Explanation Panel -->
+              <div class="console-card">
+                <div class="console-card-header">
+                  <div class="console-card-title">
+                    <span class="dot" style="background: var(--accent-cyan);"></span>
+                    <span>AI DIAGNOSIS INSPECTOR</span>
+                  </div>
+                  <span class="badge badge-critical" id="dashboardSelectedBugId">BUG-001</span>
+                </div>
+
+                <div id="dashboardDiagnosisContent">
+                  <div style="margin-bottom: 14px;">
+                    <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;" id="dashboardDiagnosisTitle">
+                      NullPointerException in UserService.getProfile()
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;" id="dashboardDiagnosisSummary">
+                      Unchecked null reference encountered when requesting profile of missing user record.
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom: 14px;">
+                    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); uppercase; margin-bottom: 6px;">
+                      5-AGENT ENGINE STATUS
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 11px;">
+                      <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 4px 8px; border-radius: var(--radius-xs);">
+                        <span>1. TRIAGE AGENT</span>
+                        <span style="color: var(--severity-critical);">CRITICAL (95% CONF)</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 4px 8px; border-radius: var(--radius-xs);">
+                        <span>2. LOG ANALYSIS</span>
+                        <span style="color: var(--accent-cyan);">PARSED (UserService.java:142)</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 4px 8px; border-radius: var(--radius-xs);">
+                        <span>3. ROOT CAUSE</span>
+                        <span style="color: var(--severity-high);">UNCHECKED NULL REF</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 4px 8px; border-radius: var(--radius-xs);">
+                        <span>4. DUPLICATE CHECK</span>
+                        <span style="color: var(--severity-resolved);">MATCH FOUND (88% SIM)</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 4px 8px; border-radius: var(--radius-xs);">
+                        <span>5. REMEDIATION</span>
+                        <span style="color: var(--severity-resolved);">HOTFIX READY</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="app._toggleChatDrawer(app.currentBugId || 'BUG-001')">
+                      DISPATCH AI MENTOR
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Module 6: Code / Error Preview with Syntax Highlighting -->
+              <div class="console-card">
+                <div class="console-card-header">
+                  <div class="console-card-title">
+                    <span class="dot" style="background: var(--severity-critical);"></span>
+                    <span>STACK TRACE / ERROR CODE PREVIEW</span>
+                  </div>
+                  <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);" id="dashboardCodeLang">JAVA</span>
+                </div>
+
+                <div class="code-preview-terminal">
+                  <div class="terminal-header">
+                    <div class="terminal-controls">
+                      <span class="terminal-dot red"></span>
+                      <span class="terminal-dot yellow"></span>
+                      <span class="terminal-dot green"></span>
+                    </div>
+                    <span id="dashboardCodeFilename">UserService.java:142</span>
+                  </div>
+                  <div class="terminal-body" id="dashboardCodeBody">java.lang.NullPointerException
+    at com.app.service.UserService.getProfile(UserService.java:142)
+<span class="line-highlight">→ 142:  User user = userRepository.findById(userId).orElse(null);</span>
+  143:  return user.getProfile(); // CRASH: user is null
+    at com.app.controller.UserController.showProfile(UserController.java:85)</div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ============================================================
+             SECTION 2: BUG REPORT ANALYZER
+             ============================================================ -->
+        <section class="section" id="section-analyze">
+          <div class="section-header-row">
+            <div>
+              <h2 class="section-title">MULTI-AGENT BUG ANALYZER</h2>
+              <p class="section-subtitle">Submit stack trace or error logs to trigger the 5-agent Python analysis pipeline</p>
+            </div>
+          </div>
+
+          <!-- Bug Form -->
+          <div class="form-card">
+            <form id="bugForm">
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label class="form-label" for="bugTitle">DEFECT TITLE *</label>
+                  <input type="text" id="bugTitle" class="form-input" 
+                    placeholder="e.g., NullPointerException in UserService.getProfile()" required>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label" for="bugDescription">DESCRIPTION / BEHAVIOR</label>
+                  <textarea id="bugDescription" class="form-textarea" rows="3"
+                    placeholder="Describe expected vs actual behavior, environment details, or steps to reproduce..."></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label" for="bugStackTrace">STACK TRACE / ERROR LOG CONSOLE</label>
+                  <textarea id="bugStackTrace" class="form-textarea" rows="7" style="font-family: var(--font-mono); font-size: 12px;"
+                    placeholder="Paste full stack trace, runtime exception, or console output log..."></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label" for="bugLogFile">ATTACH LOG FILE (.LOG, .TXT, .JSON)</label>
+                  <input type="file" id="bugLogFile" class="form-input" accept=".log,.txt,.json">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="bugCategory">SYSTEM CATEGORY</label>
+                  <select id="bugCategory" class="form-select">
+                    <option value="Auto-detect">Auto-detect</option>
+                    <option value="Backend">Backend</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="Database">Database</option>
+                    <option value="Security">Security</option>
+                    <option value="Authentication">Authentication</option>
+                    <option value="Performance">Performance</option>
+                    <option value="DevOps">DevOps</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="justify-content: flex-end;">
+                  <!-- Alignment -->
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                    ANALYZE BUG
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="loadSampleBtn">
+                    LOAD SAMPLE BUG
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="clearFormBtn">
+                    CLEAR
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- 5-Agent Pipeline Visualization -->
+          <div class="pipeline-container" id="pipelineContainer">
+            <div class="pipeline-header">
+              <div class="pipeline-title">
+                5-AGENT DIAGNOSTIC PIPELINE DISPATCH
+              </div>
+              <div class="pipeline-status" id="pipelineStatus">
+                <span class="spinner"></span> INITIALIZING ENGINE...
+              </div>
+            </div>
+
+            <div class="pipeline-steps">
+              <div class="pipeline-step pending" id="step-triage">
+                <div class="step-icon-text">01 // TRIAGE</div>
+                <div class="step-name">Triage Agent</div>
+                <div class="step-status">Waiting...</div>
+              </div>
+              <div class="pipeline-step pending" id="step-log-analysis">
+                <div class="step-icon-text">02 // LOGS</div>
+                <div class="step-name">Log Analysis</div>
+                <div class="step-status">Waiting...</div>
+              </div>
+              <div class="pipeline-step pending" id="step-root-cause">
+                <div class="step-icon-text">03 // CAUSE</div>
+                <div class="step-name">Root Cause</div>
+                <div class="step-status">Waiting...</div>
+              </div>
+              <div class="pipeline-step pending" id="step-duplicate">
+                <div class="step-icon-text">04 // DUP CHECK</div>
+                <div class="step-name">Duplicate Check</div>
+                <div class="step-status">Waiting...</div>
+              </div>
+              <div class="pipeline-step pending" id="step-remediation">
+                <div class="step-icon-text">05 // REMEDY</div>
+                <div class="step-name">Remediation</div>
+                <div class="step-status">Waiting...</div>
+              </div>
+            </div>
+
+            <div class="progress-bar" style="margin-top: 16px;">
+              <div class="progress-fill" id="pipelineProgress" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Results Container -->
+          <div class="results-container" id="resultsContainer">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 class="section-title" style="font-size: 16px; margin-bottom: 0;">AGENT ANALYSIS DISPATCH REPORT</h3>
+              <button class="btn btn-secondary btn-sm" id="openAnalysisChatBtn" onclick="app._toggleChatDrawer(app.currentBugId)">
+                ASK AI MENTOR
+              </button>
+            </div>
+
+            <div class="results-tabs">
+              <button class="result-tab active" data-agent="triage">Triage</button>
+              <button class="result-tab" data-agent="log-analysis">Log Parsing</button>
+              <button class="result-tab" data-agent="root-cause">Root Cause</button>
+              <button class="result-tab" data-agent="auto-fix">🪄 AI Auto-Fix</button>
+              <button class="result-tab" data-agent="test-generator">🧪 Auto Tests</button>
+              <button class="result-tab" data-agent="fix-verification">✅ Verification</button>
+              <button class="result-tab" data-agent="security-scan">🛡️ Security Scan</button>
+              <button class="result-tab" data-agent="duplicate">TF-IDF Duplicates</button>
+              <button class="result-tab" data-agent="rag">RAG Retrieval</button>
+              <button class="result-tab" data-agent="remediation">Remediation</button>
+            </div>
+
+            <div class="result-panel active" id="panel-triage"></div>
+            <div class="result-panel" id="panel-log-analysis"></div>
+            <div class="result-panel" id="panel-root-cause"></div>
+            <div class="result-panel" id="panel-auto-fix"></div>
+            <div class="result-panel" id="panel-test-generator"></div>
+            <div class="result-panel" id="panel-fix-verification"></div>
+            <div class="result-panel" id="panel-security-scan"></div>
+            <div class="result-panel" id="panel-duplicate"></div>
+            <div class="result-panel" id="panel-rag"></div>
+            <div class="result-panel" id="panel-remediation"></div>
+          </div>
+        </section>
+
+        <!-- ============================================================
+             SECTION 3: CODE DOCTOR
+             ============================================================ -->
+        <section class="section" id="section-code-doctor">
+          <div class="section-header-row">
+            <div>
+              <h2 class="section-title">CODE DOCTOR // STATIC ANALYSIS</h2>
+              <p class="section-subtitle">Automated Code Review Engine — Audit source code for security, leaks, and anti-patterns</p>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <form id="codeDoctorForm">
+              <div class="form-group full-width">
+                <label class="form-label" for="codeSnippetInput">SOURCE CODE INPUT CONSOLE *</label>
+                <textarea id="codeSnippetInput" class="form-textarea" rows="10" style="font-family: var(--font-mono); font-size: 12px;"
+                  placeholder="Paste Java, JavaScript, Python, SQL, or TypeScript snippet for static rules evaluation..." required></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="auditCodeBtn">
+                  AUDIT CODE SNIPPET
+                </button>
+                <button type="button" class="btn btn-secondary" id="loadSampleCodeBtn">
+                  LOAD SAMPLE CODE
+                </button>
+                <button type="button" class="btn btn-secondary" id="clearCodeBtn">
+                  CLEAR
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Code Doctor Findings -->
+          <div class="results-container" id="codeReviewResultsContainer" style="display: none; margin-top: 20px;">
+            <div class="result-header" style="justify-content: space-between;">
+              <span class="result-title">STATIC CODE HEALTH AUDIT REPORT</span>
+              <div id="codeHealthBadge" class="badge badge-resolved" style="font-size: 13px; padding: 6px 12px;">Score: 100/100 (Grade A)</div>
+            </div>
+
+            <div class="result-summary" id="codeReviewSummary">No issues detected.</div>
+
+            <div class="result-section" id="codeReviewFindingsSection">
+              <div class="result-section-title">DETECTED VULNERABILITIES & REFACTOR RECOMMENDATIONS</div>
+              <div id="codeReviewFindingsList">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================
+             SECTION 4: KNOWLEDGE BASE
+             ============================================================ -->
+        <section class="section" id="section-knowledge-base">
+          <div class="section-header-row">
+            <div>
+              <h2 class="section-title">DEFECT KNOWLEDGE BASE BROWSER</h2>
+              <p class="section-subtitle">Historical defect store indexed in SQL database</p>
+            </div>
+          </div>
+
+          <div class="kb-controls">
+            <input type="text" id="kbSearch" class="form-input kb-search"
+              placeholder="Filter defects by title, stack trace, failure point...">
+            <select id="kbCategoryFilter" class="form-select kb-filter">
+              <option value="All">All Categories</option>
+            </select>
+            <select id="kbSeverityFilter" class="form-select kb-filter">
+              <option value="All">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <select id="kbStatusFilter" class="form-select kb-filter">
+              <option value="All">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="In-Progress">In-Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="resetKbBtn" title="Reset SQL DB to original sample seed data">
+              RESET SQL DB
+            </button>
+          </div>
+
+          <div class="console-card" style="padding: 0; overflow: hidden;">
+            <div style="overflow-x: auto;">
+              <table class="bug-table">
+                <thead>
+                  <tr>
+                    <th>DEFECT ID</th>
+                    <th>TITLE</th>
+                    <th>SEVERITY</th>
+                    <th>CATEGORY</th>
+                    <th>STATUS</th>
+                    <th>DATE INDEXED</th>
+                  </tr>
+                </thead>
+                <tbody id="kbTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Console Footer ===== -->
+        <footer class="app-footer">
+          <p>BUG MISSION CONTROL // INTELLIGENT DEFECT DIAGNOSTICS PLATFORM</p>
+          <p style="margin-top: 4px; color: var(--text-muted);">Python FastAPI • SQLAlchemy • SQLite Defect Store • 5-Agent Engine</p>
+        </footer>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- JavaScript Files -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

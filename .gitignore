@@ -1,0 +1,70 @@
+# ============================================================
+# .gitignore for Smart Bug Analyzer
+# ============================================================
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# SQLite Database files (generated runtime databases)
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# Node.js dependencies & logs (if applicable)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build and Distribution outputs
+build/
+dist/
+*.egg-info/
+*.egg
+downloads/
+
+# IDE & Editor configurations
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# macOS Metadata files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Temporary & Log files
+*.log
+logs/
+tmp/
+temp/
+
+# Streamlit configurations & cache
+.streamlit/secrets.toml
